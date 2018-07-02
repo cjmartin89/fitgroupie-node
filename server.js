@@ -1,10 +1,11 @@
 const workoutModel = require('./models/workoutsModel');
-const mActivityLevels = require('./data/manageActivityLevels');
-const mWorkoutTypes = require('./data/manageWorkoutTypes');
+const geocode = require('./geocode/geocode');
 
 const firebase = require('firebase-admin');
 
+// Variables
 var serviceAccount = require('./serviceAccountKey.json');
+var workoutDictionary = [];
 
 // Initialize the default app
 var app = firebase.initializeApp({
@@ -88,46 +89,55 @@ dbWorkoutsRef.on('child_changed', function(snapshot) {
     console.log(`Workout Changed`);
 });
 
-// Add Workout
+// Geocode Address
 
-var newWorkout = new workoutModel.Workout('Professional', '25.793244', '-80.136165', '1755 meridian ave,Miami Beach,FL', 
-                                    90, 'Node Js Test', '2018-06-21 20:00:02 +0000', 'American Football')
+var initializeCoordinates = geocode.getCoordinates('33024');
 
-const workoutDictionary = {'Workout Name' : newWorkout.workoutName,
-                            'Workout Type' : newWorkout.workoutType,
-                            'Workout Address' : newWorkout.workoutAddress,
-                            'Workout Time' : newWorkout.workoutTime,
-                            'Workout Duration' : newWorkout.workoutDuration,
-                            'Latitude' : newWorkout.latitude,
-                            'Longitude' : newWorkout.longitude,
-                            'Activity Level' : newWorkout.activityLevel
-}
+initializeCoordinates.then(function(result) {
+    // Add Workout
+    console.log(`Lat: ${result.lat} Lon: ${result.long}`)
 
+    var newWorkout = new workoutModel.Workout('Beginner', result.lat, result.long, '1755 meridian ave,Miami Beach,FL', 
+    90, 'Node Js Test 2', '2018-06-21 20:00:02 +0000', 'American Football')
 
-function addWorkout (workoutDictionary)  {
-    dbWorkoutsRef.push().set(workoutDictionary, function(error) {
-        if(error) {
-            console.log('Unable to save workout!');
-        } else {
-            console.log(`Saved workout successfully!`);
-        };
-    });
-}
+    workoutDictionary = {
+        'Workout Name' : newWorkout.workoutName,
+        'Workout Type' : newWorkout.workoutType,
+        'Workout Address' : newWorkout.workoutAddress,
+        'Workout Time' : newWorkout.workoutTime,
+        'Workout Duration' : newWorkout.workoutDuration,
+        'Latitude' : newWorkout.latitude,
+        'Longitude' : newWorkout.longitude,
+        'Activity Level' : newWorkout.activityLevel
+    }
+
+    function addWorkout (workoutDictionary)  {
+        dbWorkoutsRef.push().set(workoutDictionary, function(error) {
+            if(error) {
+                console.log('Unable to save workout!');
+            } else {
+                console.log(`Saved workout successfully!`);
+            };
+        });
+    }
+
+    addWorkout(workoutDictionary);
+
+});
 
 //Function Calls
 
 retrieveActivityLevels();
 retrieveWorkoutTypes();
 retrieveWorkouts();
-addWorkout(workoutDictionary);
 
 
 var getData = setTimeout(() => {
-                console.log(`Activity Levels: ${activityLevels} Workout Types: ${workoutTypes}`)
-                for (var workout in workouts) {
-                    console.log(workouts[workout]);
-                }
-            }, 2000);
+    console.log(`Activity Levels: ${activityLevels} Workout Types: ${workoutTypes}`)
+    for (var workout in workouts) {
+        console.log(workouts[workout]);
+    }
+}, 2000);
 
 module.exports = {
     app,
